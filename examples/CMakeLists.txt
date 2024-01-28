@@ -1,0 +1,15 @@
+cxqubo_add_executable(ex01
+  ex01.cpp
+  LINK_CXQUBO_LIBS
+    header_only
+  )
+cxqubo_add_executable(ex02
+  ex02.cpp
+  LINK_CXQUBO_LIBS
+    header_only
+  )
+cxqubo_add_executable(tsp
+  tsp.cpp
+  LINK_CXQUBO_LIBS
+    header_only
+  )
