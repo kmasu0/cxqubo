@@ -21,7 +21,7 @@ option(CXQUBO_BUILD_EXAMPLE "Build the cxqubo example program." OFF)
 option(CXQUBO_ENABLE_DUMP "Enable dump method even if release build." OFF)
 
 if (CXQUBO_BUILT_STANDALONE)
-  set(CMAKE_CXX_STANDARD 20)
+  set(CMAKE_CXX_STANDARD 11)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 
