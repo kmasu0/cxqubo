@@ -29,8 +29,9 @@ struct VariableData {
     return os << type << "(" << name << ")";
   }
 
-  friend bool operator==(const VariableData &lhs,
-                         const VariableData &rhs) = default;
+  bool equals(const VariableData &rhs) const {
+    return name == rhs.name && type == rhs.type;
+  }
 };
 } // namespace cxqubo
 

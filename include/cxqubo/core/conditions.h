@@ -46,11 +46,11 @@ public:
   static inline CmpOp lt() { return CmpOp(LT); }
   static inline CmpOp le() { return CmpOp(LE); }
 
-  friend auto operator<=>(const CmpOp &lhs, const CmpOp &rhs) = default;
+  int compare(CmpOp rhs) const { return compare_values(kind, rhs.kind); }
 
   size_t hash() const { return hash_value(kind); }
 
-  template <std::totally_ordered T> bool invoke(T lhs, T rhs) const {
+  template <class T> bool invoke(T lhs, T rhs) const {
     switch (kind) {
     default:
       unreachable_code("invalid logical comparison!");

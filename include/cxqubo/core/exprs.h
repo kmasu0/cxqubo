@@ -16,6 +16,7 @@
 #define CXQUBO_CORE_EXPRS_H
 
 #include "cxqubo/core/entity.h"
+#include "cxqubo/misc/compare.h"
 #include "cxqubo/misc/debug.h"
 #include "cxqubo/misc/drawable.h"
 #include "cxqubo/misc/error_handling.h"
@@ -30,7 +31,7 @@ struct Fp {
   std::ostream &draw(std::ostream &os) const {
     return os << std::to_string(value);
   }
-  friend auto operator<=>(Fp lhs, Fp rhs) = default;
+  int compare(Fp rhs) const { return compare_values(value, rhs.value); }
 };
 
 /// Placeholder value.
@@ -39,8 +40,9 @@ struct Placeholder {
   std::ostream &draw(std::ostream &os) const {
     return os << "place('" << name << "')";
   }
-  friend auto operator<=>(const Placeholder &lhs,
-                          const Placeholder &rhs) = default;
+  int compare(const Placeholder &rhs) const {
+    return compare_values(name, rhs.name);
+  }
 };
 
 /// Labeled expression.
@@ -52,7 +54,10 @@ struct SubH {
     return os << "subh"
               << "('" << label << "', " << expr << ")";
   }
-  friend auto operator<=>(const SubH &lhs, const SubH &rhs) = default;
+  int compare(const SubH &rhs) const {
+    return compare_tuple(std::make_tuple(label, expr),
+                         std::make_tuple(rhs.label, expr));
+  }
 };
 
 /// Labeled expression.
@@ -65,8 +70,10 @@ struct Constraint {
     return os << "constr"
               << "('" << label << "', " << expr << ")";
   }
-  friend auto operator<=>(const Constraint &lhs,
-                          const Constraint &rhs) = default;
+  int compare(const Constraint &rhs) const {
+    return compare_tuple(std::make_tuple(label, expr, cond),
+                         std::make_tuple(rhs.label, rhs.expr, rhs.cond));
+  }
 };
 
 enum class Op : uint8_t {
@@ -103,7 +110,9 @@ struct Unary {
   std::ostream &draw(std::ostream &os) const {
     return os << "(" << op << operand << ')';
   }
-  friend bool operator==(const Unary &lhs, const Unary &rhs) = default;
+  bool equals(const Unary &rhs) const {
+    return op == rhs.op && operand == rhs.operand;
+  }
 };
 
 struct List {
@@ -125,7 +134,9 @@ struct List {
     return os << ')';
   }
 
-  friend bool operator==(const List &lhs, const List &rhs) = default;
+  bool equals(const List &rhs) const {
+    return op == rhs.op && node == rhs.node;
+  }
 
   iterator begin() { return iterator(node); }
   iterator end() { return iterator(); }

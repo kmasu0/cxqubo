@@ -1,4 +1,5 @@
 #include "cxqubo/cxqubo.h"
+#include "cxqubo/misc/containers.h"
 #include <cstdlib>
 #include <ctime>
 #include <memory>
@@ -26,18 +27,14 @@ void tsp(unsigned ncity) {
   auto H = model.fp(0.0);
 
   for (unsigned i : irange(ncity)) {
-    auto h = model.fp(0.0);
-    for (unsigned j : irange(ncity))
-      h += x[i][j];
-
+    auto h = accumulate(irange(ncity), model.fp(0.0),
+                        [&x, i](auto v, unsigned j) { return v + x[i][j]; });
     H += constraint((h - 1.0).pow(2) == 0.0, "time" + std::to_string(i));
   }
 
   for (unsigned j : irange(ncity)) {
-    auto h = model.fp(0.0);
-    for (unsigned i : irange(ncity))
-      h += x[i][j];
-
+    auto h = accumulate(irange(ncity), model.fp(0.0),
+                        [&x, j](auto v, unsigned i) { return v + x[i][j]; });
     H += constraint((h - 1.0).pow(2) == 0.0, "city" + std::to_string(j));
   }
 

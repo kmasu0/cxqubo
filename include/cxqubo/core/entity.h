@@ -15,6 +15,7 @@
 #ifndef CXQUBO_CORE_ENTITY_H
 #define CXQUBO_CORE_ENTITY_H
 
+#include "cxqubo/misc/compare.h"
 #include "cxqubo/misc/error_handling.h"
 #include "cxqubo/misc/hasher.h"
 #include <functional>
@@ -22,7 +23,7 @@
 
 namespace cxqubo {
 /// Entity in CXQUBO which satisfies VecMapKey concept.
-template <class SubClass, std::unsigned_integral T, char PREFIX> class Entity {
+template <class SubClass, class T, char PREFIX> class Entity {
   static inline constexpr T INVALID = 0;
 
   T id = INVALID;
@@ -31,6 +32,8 @@ protected:
   Entity(T i) : id(i) {
     static_assert(std::is_base_of<Entity, SubClass>::value,
                   "Must pass the derived type to this template!");
+    static_assert(std::is_unsigned_v<T>,
+                  "Entity ID type must be unsigned integral!");
   }
 
 public:
@@ -50,7 +53,7 @@ public:
 public:
   inline operator bool() const { return valid(); }
 
-  friend auto operator<=>(Entity lhs, Entity rhs) = default;
+  int compare(Entity rhs) const { return compare_values(id, rhs.id); }
 
   size_t index() const { return id - 1; }
   size_t raw_id() const { return id; }

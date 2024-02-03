@@ -8,6 +8,7 @@
 #ifndef CXQUBO_MISC_ALLOCATOR_H
 #define CXQUBO_MISC_ALLOCATOR_H
 
+#include "cxqubo/misc/type_traits.h"
 #include <cstddef>
 #include <new>
 #include <vector>
@@ -87,8 +88,9 @@ public:
   void deallocate(void *p) {}
 
   /// Allocate and call ctor an object with the arguments.
-  template <class... Args>
-  requires std::constructible_from<T, Args...> T *create(Args &&...args) {
+  template <class... Args> T *create(Args &&...args) {
+    static_assert(std::is_constructible_v<T, Args...>,
+                  "create argument must be correct one.");
     return new (allocate()) T(args...);
   }
 

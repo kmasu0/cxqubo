@@ -1,32 +1,39 @@
 #ifndef CXQUBO_MISC_SHAPE_H
 #define CXQUBO_MISC_SHAPE_H
 
+#include "cxqubo/misc/containers.h"
 #include "cxqubo/misc/error_handling.h"
 #include "cxqubo/misc/math.h"
 #include "cxqubo/misc/range.h"
-#include "cxqubo/misc/span.h"
+#include "cxqubo/misc/spanref.h"
 #include <algorithm>
 #include <numeric>
 #include <vector>
 
 namespace cxqubo {
 /// Array strides.
-using ArrayStrides = ConstSpan<unsigned>;
+using ArrayStrides = SpanRef<unsigned>;
 /// Array indexes.
-using ArrayIndexes = ConstSpan<size_t>;
+using ArrayIndexes = SpanRef<size_t>;
 
 /// Array shape.
-struct ArrayShape : public ConstSpan<unsigned> {
-  using Super = ConstSpan<unsigned>;
-  Super super() const { return *this; }
+struct ArrayShape : public SpanRef<unsigned> {
+  using Super = SpanRef<unsigned>;
 
 public:
   using Super::Super;
   using Super::operator=;
 
+  ArrayShape(const SpanRef<unsigned> &arg) : Super(arg) {}
+  ArrayShape &operator=(const SpanRef<unsigned> &arg) {
+    static_cast<Super &>(*this) = arg;
+    return *this;
+  }
+
+  int compare(const ArrayShape &rhs) const { return compare_range(*this, rhs); }
+
   size_t nelements() const {
-    return std::accumulate(begin(), end(), 1,
-                           [](size_t acc, size_t n) { return acc * n; });
+    return accumulate(*this, 1, [](size_t acc, size_t n) { return acc * n; });
   }
 
   bool inbounds(ArrayIndexes indexes) const {
@@ -87,19 +94,8 @@ public:
 
   ArrayIndexes operator*() const { return ArrayIndexes(indexes).drop_front(); }
 
-  friend bool operator==(const ArrayShapeIter &lhs, const ArrayShapeIter &rhs) {
-    if (lhs.shape.size() != rhs.shape.size())
-      return false;
-
-    if (memcmp(lhs.shape.data(), rhs.shape.data(),
-               lhs.shape.size() * sizeof(unsigned)) != 0)
-      return false;
-
-    if (lhs.indexes[0] != rhs.indexes[0])
-      return false;
-
-    return memcmp(lhs.indexes.data(), rhs.indexes.data(),
-                  lhs.indexes.size() * sizeof(unsigned)) == 0;
+  bool equals(const ArrayShapeIter &rhs) const {
+    return shape == rhs.shape && indexes == rhs.indexes;
   }
 
   ArrayShapeIter &operator++() {
@@ -132,12 +128,12 @@ inline Range<ArrayShapeIter> shape_range(ArrayShape shape) {
 }
 
 template <class T>
-concept ShapedArrayC = requires(const T array, unsigned i) {
-  typename T::Item;
-  { array.shape() } -> std::convertible_to<ArrayShape>;
-  { array.ndim() } -> std::convertible_to<size_t>;
-  { array.remain(i) } -> std::convertible_to<T>;
-};
+constexpr bool is_shaped_array =
+    std::is_convertible_v<decltype(std::declval<T>().shape()), ArrayShape>
+        &&std::is_convertible_v<decltype(std::declval<T>().ndim()), size_t>
+            &&std::is_convertible_v<decltype(std::declval<T>().remain(
+                                        std::declval<unsigned>())),
+                                    T>;
 
 template <class A> struct ShapedIter {
   const A *array = nullptr;
@@ -146,6 +142,7 @@ template <class A> struct ShapedIter {
 public:
   ShapedIter() = default;
   ShapedIter(const A *array, unsigned index) : array(array), index(index) {
+    static_assert(is_shaped_array<A>, "range of array must be shaped array!");
     assert(array->ndim() != 0 && "Array cannot be iterated!");
   }
 
@@ -156,8 +153,10 @@ public:
     return array->remain(index);
   }
 
-  friend auto operator<=>(const ShapedIter &lhs,
-                          const ShapedIter &rhs) = default;
+  int compare(const ShapedIter &rhs) const {
+    return compare_values(std::make_tuple(array, index),
+                          std::make_tuple(rhs.array, rhs.index));
+  }
 
   ShapedIter &operator++() {
     assert(!is_end() && "iterator out of bounds!");
@@ -175,8 +174,7 @@ public:
   }
 };
 
-template <ShapedArrayC A>
-inline Range<ShapedIter<A>> array_range(const A &array) {
+template <class A> inline Range<ShapedIter<A>> array_range(const A &array) {
   return range(ShapedIter<A>(&array, 0),
                ShapedIter<A>(&array, array.shape()[0]));
 }

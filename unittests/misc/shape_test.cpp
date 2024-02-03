@@ -15,9 +15,9 @@ protected:
   }
   void TearDown() override {}
 
-  ArrayShape make_shape(ConstSpan<unsigned> vals) {
+  ArrayShape make_shape(SpanRef<unsigned> vals) {
     shape_owner = span_owner(vals);
-    return shape_owner.as_const_span();
+    return shape_owner.as_spanref();
   }
 
   struct ShapedArray {
@@ -34,7 +34,7 @@ protected:
       return ShapedArray{base + i * shape_.strides()[0], shape_.drop_front()};
     }
   };
-  ShapedArray make_array(ConstSpan<unsigned> shape) {
+  ShapedArray make_array(SpanRef<unsigned> shape) {
     return {0, make_shape(shape)};
   }
 };

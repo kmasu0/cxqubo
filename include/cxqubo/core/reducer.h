@@ -21,14 +21,27 @@
 namespace cxqubo {
 inline constexpr double DEFAULT_STRENGTH = 5.0;
 
+#if 0
 template <class T>
 concept TermCoeffInserter = requires(T x, ConstSpan<Variable> term,
                                      double coeff) {
   { x.insert_or_add(term, coeff) } -> std::same_as<void>;
   { x.ignore(term, coeff) } -> std::convertible_to<bool>;
 };
+#endif
 
-template <TermCoeffInserter Inserter> class LimitedInserter {
+template <class T>
+constexpr bool is_termcoeff_inserter =
+    std::is_same_v<decltype(std::declval<T>().insert_or_add(
+                       std::declval<SpanRef<Variable>>(),
+                       std::declval<double>())),
+                   void>
+        &&std::is_convertible_v<decltype(std::declval<T>().ignore(
+                                    std::declval<SpanRef<Variable>>(),
+                                    std::declval<double>())),
+                                bool>;
+
+template <class Inserter> class LimitedInserter {
   Context &ctx;
   Inserter &inserter;
   double strength;
@@ -37,7 +50,10 @@ template <TermCoeffInserter Inserter> class LimitedInserter {
 public:
   LimitedInserter(Context &ctx, Inserter &inserter, double strength,
                   size_t limit = 2)
-      : ctx(ctx), inserter(inserter), strength(strength), limit(2) {}
+      : ctx(ctx), inserter(inserter), strength(strength), limit(2) {
+    static_assert(is_termcoeff_inserter<Inserter>,
+                  "template argument must satisfy is_termcoeff_inserter!");
+  }
 
   /// Create new variables q[0:dim-limit] and convert
   ///   x_0 * x_1 * ... * x_(dim-1)

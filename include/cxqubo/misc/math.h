@@ -3,15 +3,25 @@
 
 #include "cxqubo/misc/error_handling.h"
 #include <bit>
-#include <concepts>
 #include <cstddef>
 #include <cstdint>
 
 namespace cxqubo {
-template <std::integral T0, std::integral T1>
-inline constexpr T0 divide_ceil(T0 n, T1 divisor) {
+template <class T0, class T1>
+inline constexpr std::enable_if_t<
+    std::is_integral_v<T0> && std::is_integral_v<T1>, T0>
+divide_ceil(T0 n, T1 divisor) {
   return (n + (T0(divisor) - 1)) / T0(divisor);
 }
+
+template <class T>
+inline std::enable_if_t<std::is_unsigned_v<T>, unsigned> countl_zero(T n) {
+  if constexpr (sizeof(T) <= 32)
+    return __builtin_clz(n);
+  else
+    return __builtin_clzl(n);
+}
+
 inline bool is_pow2(uint64_t n) { return n == 0 ? false : (n & (n - 1)) == 0; }
 template <size_t N> inline bool is_pow2_const() {
   return N == 0 ? false : (N & (N - 1)) == 0;
@@ -37,14 +47,14 @@ inline uintptr_t align_address(const void *addr, unsigned align) {
 }
 inline unsigned log2_32(uint32_t n) {
   assert(n != 0 && "argument must not be zero!");
-  return 31 - std::countl_zero(n);
+  return 31 - countl_zero(n);
 }
 inline unsigned log2_64(uint64_t n) {
   assert(n != 0 && "argument must not be zero!");
-  return 63 - std::countl_zero(n);
+  return 63 - countl_zero(n);
 }
-inline unsigned log2_32_ceil(uint32_t n) { return 32 - std::countl_zero(n); }
-inline unsigned log2_64_ceil(size_t n) { return 64 - std::countl_zero(n); }
+inline unsigned log2_32_ceil(uint32_t n) { return 32 - countl_zero(n); }
+inline unsigned log2_64_ceil(size_t n) { return 64 - countl_zero(n); }
 
 inline constexpr size_t aligned_sizeof(size_t n) {
   if (n == 1)
