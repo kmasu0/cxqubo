@@ -1,7 +1,7 @@
 #ifndef CXQUBO_MISC_CTOR_H
 #define CXQUBO_MISC_CTOR_H
 
-#include <concepts>
+#include "cxqubo/misc/type_traits.h"
 #include <utility>
 
 namespace cxqubo {

@@ -20,6 +20,7 @@
 #include "cxqubo/core/reducer.h"
 #include "cxqubo/misc/drawable.h"
 #include "cxqubo/misc/strsaver.h"
+#include <optional>
 #include <sstream>
 
 #include "cimod/binary_quadratic_model.hpp"
@@ -119,7 +120,7 @@ struct BQMInserter {
 
 public:
   BQMInserter() = default;
-  void insert_or_add(ConstSpan<Variable> term, double coeff) {
+  void insert_or_add(SpanRef<Variable> term, double coeff) {
     if (coeff == 0.0)
       return;
 
@@ -149,7 +150,7 @@ public:
       unreachable_code("invalid dimention product!");
     }
   }
-  bool ignore(ConstSpan<Variable>, double) const { return false; }
+  bool ignore(SpanRef<Variable>, double) const { return false; }
 };
 /// QUBO generator.
 struct QUBOInserter {
@@ -158,7 +159,7 @@ struct QUBOInserter {
 
 public:
   QUBOInserter() = default;
-  void insert_or_add(ConstSpan<Variable> term, double coeff) {
+  void insert_or_add(SpanRef<Variable> term, double coeff) {
     if (coeff == 0.0)
       return;
 
@@ -183,7 +184,7 @@ public:
       unreachable_code("invalid dimention product!");
     }
   }
-  bool ignore(ConstSpan<Variable>, double) const { return false; }
+  bool ignore(SpanRef<Variable>, double) const { return false; }
 };
 
 /// Context manager and interface of CXQUBO entities.User generates variables
@@ -325,7 +326,7 @@ public:
 
     array_shapes.push_back(span_owner(shape));
 
-    return Array(&ctx, base, array_shapes.back().as_const_span());
+    return Array(&ctx, base, array_shapes.back().as_spanref());
   }
 
   /// Fix a variable to the given spin value.
@@ -336,7 +337,7 @@ public:
     fixs.emplace(var.index(), convert_spin_value(v, from, Vartype::BINARY));
   }
   /// Fix variables to the given spin value.
-  void fix_all(ConstSpan<Express> vars, int32_t v) {
+  void fix_all(SpanRef<Express> vars, int32_t v) {
     for (const auto &var : vars)
       fix(var, v);
   }
@@ -346,7 +347,7 @@ public:
       fix(array.at(is), v);
   }
   /// Fix variables to values.
-  void fix_each(ConstSpan<Express> vars, ConstSpan<int32_t> vals) {
+  void fix_each(SpanRef<Express> vars, SpanRef<int32_t> vals) {
     assert(vars.size() == vals.size() &&
            "number of variables and values must be same!");
     for (unsigned i, n = vars.size(); i != n; ++i)
@@ -393,7 +394,7 @@ public:
   /// Convert a Compiled to an arbitary solver model. If you want to convert
   /// Compiled to your own model, prepare \p TermCoeffInserter and pass it as an
   /// argument.
-  template <TermCoeffInserter Inserter>
+  template <class Inserter>
   void create_solver_model(const Compiled &compiled, Inserter &inserter,
                            const FeedDict &feed_dict = FeedDict{},
                            double strength = DEFAULT_STRENGTH) {

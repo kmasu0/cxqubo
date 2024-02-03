@@ -35,7 +35,9 @@ public:
 public:
   Express(Context *ctx, Expr ref) : ctx(ctx), ref(ref) {}
 
-  friend bool operator==(const Express &lhs, const Express &rhs) = default;
+  bool equals(const Express &rhs) const {
+    return ctx == rhs.ctx && ref == rhs.ref;
+  }
 
   ExprData data() const { return ctx->expr_data(ref); }
 
@@ -241,7 +243,7 @@ public:
   Array remain(ArrayIndexes indexes) const {
     assert(shape_.size() > 0 && "Array has no elements!");
     auto b = Expr::from(base_.index() + shape_.offset(indexes));
-    return Array(ctx, b, shape_.drop_front(indexes.size()));
+    return Array(ctx, b, ArrayShape(shape_.drop_front(indexes.size())));
   }
 
   size_t hash() const {
@@ -397,8 +399,7 @@ private:
     if (lhs.ndim() == 0)
       return true;
 
-    return std::memcmp(lhs.shape_.data(), rhs.shape_.data(),
-                       sizeof(unsigned) * lhs.shape_.size()) == 0;
+    return lhs.shape_ == rhs.shape_;
   }
 };
 

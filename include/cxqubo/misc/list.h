@@ -1,6 +1,7 @@
 #ifndef CXQUBO_MISC_LIST_H
 #define CXQUBO_MISC_LIST_H
 
+#include "cxqubo/misc/compare.h"
 #include "cxqubo/misc/error_handling.h"
 #include <utility>
 
@@ -35,7 +36,7 @@ public:
   ForwardNodeIter() = default;
   ForwardNodeIter(Node *node) : node(node) {}
 
-  friend bool operator==(ForwardNodeIter lhs, ForwardNodeIter rhs) = default;
+  bool equals(const ForwardNodeIter &rhs) const { return node == rhs.node; }
 
   T &operator*() {
     assert(node && "iterator out of bounds!");

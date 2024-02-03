@@ -33,7 +33,9 @@ public:
     return *(new (alloc.allocate()) std::string{str});
   }
 
-  bool contains(std::string_view str) const { return strings.contains(str); }
+  bool contains(std::string_view str) const {
+    return strings.find(str) != strings.end();
+  }
 };
 } // namespace cxqubo
 

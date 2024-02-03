@@ -7,7 +7,7 @@ namespace {
 TEST(cxqubo_test, array) {
   Context context;
   CXQUBOModel model(context);
-  Array xs = model.add_vars({3}, Vartype::BINARY, "x");
+  Array xs = model.add_vars(3, Vartype::BINARY, "x");
   EXPECT_EQ("x[0]", context.expr_name((*xs[0]).ref));
   EXPECT_EQ("x[1]", context.expr_name((*xs[1]).ref));
   EXPECT_EQ("x[2]", context.expr_name((*xs[2]).ref));

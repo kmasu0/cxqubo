@@ -61,11 +61,11 @@ public:
   ExprData expr_data(Expr expr) const { return exprs[expr]; }
   VariableData var_data(Variable var) const { return vars[var]; }
   ProductData product_data(Product p) const {
-    return p ? products[p].as_const_span() : ProductData();
+    return p ? products[p].as_spanref() : ProductData();
   }
 
   bool contains_var(std::string_view name) const {
-    return name_to_ref.contains(name);
+    return name_to_ref.find(name) != name_to_ref.end();
   }
 
   Variable var_of(std::string_view name) const {
@@ -97,7 +97,7 @@ public:
   unsigned dim_of(Product p) const { return p ? product_data(p).size() : 0; }
 
   bool contains_cmp(CmpOp op, double rhs) const {
-    return cmp_to_cond.contains({op, rhs});
+    return cmp_to_cond.find({op, rhs}) != cmp_to_cond.end();
   }
   size_t num_cmps() const { return cmp_to_cond.size(); }
 
@@ -170,7 +170,7 @@ public:
     return save_product(vars, true);
   }
 
-  Product save_product(ConstSpan<Variable> vars, bool is_sorted = false) {
+  Product save_product(SpanRef<Variable> vars, bool is_sorted = false) {
     if (vars.empty())
       return Product::none();
 
@@ -186,7 +186,7 @@ public:
       return it->second;
 
     Product p = products.append(span_owner(vars));
-    auto data = ProductData(products[p].as_const_span());
+    auto data = ProductData(products[p].as_spanref());
     data_to_product[data] = p;
 
     debug_code(odbg_indent() << p << " = " << data << '\n');
@@ -208,7 +208,7 @@ public:
     auto expr = insert_expr(var);
     return expr;
   }
-  std::vector<Expr> variables(ConstSpan<Variable> vs) {
+  std::vector<Expr> variables(SpanRef<Variable> vs) {
     std::vector<Expr> result;
     for (auto v : vs)
       result.emplace_back(variable(v));

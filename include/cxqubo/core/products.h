@@ -17,15 +17,22 @@
 
 #include "cxqubo/core/entity.h"
 #include "cxqubo/core/variables.h"
+#include "cxqubo/misc/compare.h"
 #include "cxqubo/misc/drawable.h"
 #include "cxqubo/misc/hasher.h"
-#include "cxqubo/misc/span.h"
+#include "cxqubo/misc/spanref.h"
 
 namespace cxqubo {
-struct ProductData : public ConstSpan<Variable> {
-  using Super = ConstSpan<Variable>;
-  using Super::Super;
-  using Super::operator=;
+class ProductData : public SpanRef<Variable> {
+  using Super = SpanRef<Variable>;
+
+public:
+  ProductData() = default;
+  ProductData(const SpanRef<Variable> &arg) : Super(arg) {}
+  ProductData &operator=(const SpanRef<Variable> &arg) {
+    static_cast<Super &>(*this) = arg;
+    return *this;
+  }
 
   size_t hash() const { return hash_range(begin(), end()); }
 
@@ -40,15 +47,8 @@ struct ProductData : public ConstSpan<Variable> {
     return os << ')';
   }
 
-  friend auto operator<=>(ProductData lhs, ProductData rhs) {
-    unsigned le = lhs.size();
-    unsigned re = rhs.size();
-    for (unsigned i = 0, e = std::min(le, re); i != e; ++i) {
-      auto res = lhs[i] <=> rhs[i];
-      if (res != std::strong_ordering::equal)
-        return res;
-    }
-    return le <=> re;
+  int compare(const ProductData &rhs) const {
+    return compare_range(*this, rhs);
   }
 };
 

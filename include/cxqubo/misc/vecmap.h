@@ -7,12 +7,12 @@
 
 namespace cxqubo {
 template <class Key>
-concept VecMapKey = requires(Key key, size_t index) {
-  { key.index() } -> std::convertible_to<std::size_t>;
-  { Key::from(index) } -> std::same_as<Key>;
-};
+constexpr bool is_vecmap_key =
+    std::is_convertible_v<decltype(std::declval<Key>().index()), size_t>
+        &&std::is_convertible_v<decltype(Key::from(std::declval<size_t>())),
+                                size_t>;
 
-template <VecMapKey Key, class T> class VecMap {
+template <class Key, class T> class VecMap {
 protected:
   using Vec = std::vector<T>;
   Vec vec;
@@ -20,7 +20,10 @@ protected:
 
 public:
   VecMap() = default;
-  VecMap(const T &nil) : nil(nil) {}
+  VecMap(const T &nil) : nil(nil) {
+    static_assert(is_vecmap_key<Key>, "1st template argument of VecMap must "
+                                      "satisfy is_vecmap_key requirement!");
+  }
 
   bool inbounds(Key key) const { return key.index() < vec.size(); }
 

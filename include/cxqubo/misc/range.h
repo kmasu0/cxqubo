@@ -1,8 +1,8 @@
 #ifndef CXQUBO_MISC_RANGE_H
 #define CXQUBO_MISC_RANGE_H
 
+#include "cxqubo/misc/compare.h"
 #include "cxqubo/misc/error_handling.h"
-#include <ranges>
 #include <utility>
 
 namespace cxqubo {
@@ -17,18 +17,21 @@ template <class It> inline Range<It> range(It begin_, It end_) {
   return Range<It>{std::move(begin_), std::move(end_)};
 }
 
-template <std::ranges::range C> inline auto range(C &&c) {
-  return range(std::ranges::begin(c), std::ranges::end(c));
+template <class C> inline auto range(C &&c) {
+  return range(std::begin(c), std::end(c));
 }
 
-template <std::integral T = int> struct IntIter {
+template <class T = int> struct IntIter {
   T cur = T(0);
   T stride = T(1);
 
 public:
   IntIter(T cur = T(0), T stride = T(1)) : cur(cur), stride(stride) {}
 
-  friend auto operator<=>(const IntIter &lhs, const IntIter &rhs) = default;
+  int compare(const IntIter &rhs) const {
+    return compare_tuple(std::make_tuple(cur, stride),
+                         std::make_tuple(rhs.cur, rhs.stride));
+  }
 
   T &operator*() { return cur; }
   T *operator->() { return &cur; }
@@ -55,18 +58,21 @@ public:
   }
 };
 
-template <std::integral T>
+template <class T>
 inline Range<IntIter<T>> irange(T begin, T end, T stride = T(1)) {
+  static_assert(std::is_integral_v<T>,
+                "integer range specifiers must have integer type");
   return range(IntIter<T>(begin, stride), IntIter<T>(end, stride));
 }
 
-template <std::integral T>
-inline Range<IntIter<T>> irange(T end, T stride = T(1)) {
+template <class T> inline Range<IntIter<T>> irange(T end, T stride = T(1)) {
+  static_assert(std::is_integral_v<T>,
+                "integer range specifiers must have integer type");
   return irange(T(0), end, stride);
 }
 
 /// Iterator wrapper like llvm::early_inc_iterator.
-template <std::forward_iterator T> class DisposableIter {
+template <class T> class DisposableIter {
   T cur = T();
   bool incremented = false;
 
@@ -95,8 +101,8 @@ template <class It> inline auto disposable_range(It begin_, It end_) {
                                    DisposableIter(std::move(end_)));
 }
 
-template <std::ranges::range C> inline auto disposable_range(C &&c) {
-  return disposable_range(std::ranges::begin(c), std::ranges::end(c));
+template <class C> inline auto disposable_range(C &&c) {
+  return disposable_range(std::begin(c), std::end(c));
 }
 } // namespace cxqubo
 

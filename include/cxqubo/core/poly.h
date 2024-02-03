@@ -36,8 +36,9 @@ public:
   ConstPolyIter(Multi::const_iterator it, Multi::const_iterator end)
       : iter(it), end(end) {}
 
-  friend bool operator==(const ConstPolyIter &lhs,
-                         const ConstPolyIter &rhs) = default;
+  bool equals(const ConstPolyIter &rhs) const {
+    return iter == rhs.iter && end == rhs.end;
+  }
 
   std::pair<Product, Expr> operator*() const {
     assert(!iter.empty() && "index out of bounds!");

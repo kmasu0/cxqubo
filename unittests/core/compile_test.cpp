@@ -1,4 +1,5 @@
 #include "cxqubo/core/compile.h"
+#include "cxqubo/misc/containers.h"
 #include "gtest/gtest.h"
 #include <sstream>
 
@@ -62,8 +63,8 @@ TEST(parser_test, basics) {
 
   auto p0 = ctx.save_product(b0);
   auto p1 = ctx.save_product(b1);
-  EXPECT_TRUE(multi.contains(p0));
-  EXPECT_TRUE(multi.contains(p1));
+  EXPECT_TRUE(contains(multi, p0));
+  EXPECT_TRUE(contains(multi, p1));
   EXPECT_EQ(ctx.fp(1.0), multi[p0]);
   EXPECT_EQ(ctx.fp(1.0), multi[p1]);
 
@@ -83,10 +84,10 @@ TEST(parser_test, basics) {
   p1 = ctx.save_product({b0, b3});
   auto p2 = ctx.save_product({b1, b2});
   auto p3 = ctx.save_product({b1, b3});
-  EXPECT_TRUE(multi.contains(p0));
-  EXPECT_TRUE(multi.contains(p1));
-  EXPECT_TRUE(multi.contains(p2));
-  EXPECT_TRUE(multi.contains(p3));
+  EXPECT_TRUE(contains(multi, p0));
+  EXPECT_TRUE(contains(multi, p1));
+  EXPECT_TRUE(contains(multi, p2));
+  EXPECT_TRUE(contains(multi, p3));
   EXPECT_EQ(ctx.fp(1.0), multi[p0]);
   EXPECT_EQ(ctx.fp(1.0), multi[p1]);
   EXPECT_EQ(ctx.fp(1.0), multi[p2]);
@@ -98,8 +99,8 @@ TEST(parser_test, basics) {
   EXPECT_EQ(2, multi.size());
   p0 = ctx.save_product(b0);
   p1 = ctx.save_product(b1);
-  EXPECT_TRUE(multi.contains(p0));
-  EXPECT_TRUE(multi.contains(p1));
+  EXPECT_TRUE(contains(multi, p0));
+  EXPECT_TRUE(contains(multi, p1));
   EXPECT_EQ(ctx.fp(-1.0), multi[p0]);
   EXPECT_EQ(ctx.fp(-1.0), multi[p1]);
 
@@ -108,10 +109,10 @@ TEST(parser_test, basics) {
   EXPECT_TRUE(poly.is<Multi>());
   multi = poly.as<Multi>();
   EXPECT_EQ(2, multi.size());
-  EXPECT_TRUE(multi.contains(Product::none()));
+  EXPECT_TRUE(contains(multi, Product::none()));
   EXPECT_EQ(ctx.fp(-1.0), multi[Product::none()]);
   p0 = ctx.save_product(s0);
-  EXPECT_TRUE(multi.contains(p0));
+  EXPECT_TRUE(contains(multi, p0));
   EXPECT_EQ(ctx.fp(2.0), multi[p0]);
 }
 

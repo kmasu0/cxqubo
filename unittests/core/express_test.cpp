@@ -12,9 +12,9 @@ protected:
   void SetUp() override {}
   void TearDown() override { shape_owners.clear(); }
 
-  ArrayShape make_shape(ConstSpan<unsigned> vals) {
+  ArrayShape make_shape(SpanRef<unsigned> vals) {
     shape_owners.push_back(span_owner(vals));
-    return shape_owners.back().as_const_span();
+    return shape_owners.back().as_spanref();
   }
 };
 
