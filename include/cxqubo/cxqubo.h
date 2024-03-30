@@ -27,6 +27,8 @@
 #include "cimod/vartypes.hpp"
 
 namespace cxqubo {
+inline constexpr double DEFAULT_STRENGTH = 5.0;
+
 using Linear = cimod::Linear<unsigned, double>;
 using Quadratic = cimod::Quadratic<unsigned, double>;
 
@@ -105,10 +107,61 @@ public:
     return std::nullopt;
   }
 
-  std::ostream &draw(std::ostream &os) const {
-    os << "energy: " << std::to_string(energy) << '\n';
-    os << "subhs: " << subh_energies << '\n';
-    return os << "constraints: " << constraint_energies << '\n';
+  friend std::ostream &operator<<(std::ostream &os, const Report &report) {
+    os << "energy: " << std::to_string(report.energy) << '\n';
+    os << "subhs: " << report.subh_energies << '\n';
+    return os << "constraints: " << report.constraint_energies << '\n';
+  }
+};
+
+/// Class compressing sparse variable indexes to dense indexes.
+struct DenseIndexer {
+  std::vector<unsigned> *to_sparse = nullptr;
+  std::unordered_map<unsigned, unsigned> sparse_to_dense;
+
+public:
+  DenseIndexer(std::vector<unsigned> *to_sparse = nullptr)
+      : to_sparse(to_sparse) {}
+
+  std::vector<unsigned> indexes(SpanRef<Variable> term) {
+    unsigned n = term.size();
+    std::vector<unsigned> vec(n, Variable::none().index());
+    for (unsigned i = 0; i != n; ++i)
+      vec[i] = get_or_assign(term[i].index());
+    return vec;
+  }
+
+  void reset(std::vector<unsigned> *to_sparse = nullptr) {
+    this->to_sparse = to_sparse;
+    sparse_to_dense.clear();
+  }
+
+  /// Create a sample with sparse indexes from a sample with dense indexes.
+  static inline Sample make_sparse(const Sample dense_sample,
+                                   const std::vector<unsigned> &to_sparse) {
+    Sample sparse_sample;
+    for (auto [dense, spin] : dense_sample) {
+      auto [it, inserted] = sparse_sample.emplace(to_sparse[dense], spin);
+      if (!inserted)
+        unreachable_code(
+            "to_sparse has a duplicate sparse index for two dense indexes!");
+    }
+    return sparse_sample;
+  }
+
+private:
+  unsigned get_or_assign(unsigned sparse) {
+    if (!to_sparse)
+      return sparse;
+
+    auto it = sparse_to_dense.find(sparse);
+    if (it != sparse_to_dense.end())
+      return it->second;
+
+    unsigned dense = to_sparse->size();
+    to_sparse->emplace_back(sparse);
+    sparse_to_dense.emplace(sparse, dense);
+    return dense;
   }
 };
 
@@ -117,30 +170,35 @@ struct BQMInserter {
   Linear linear;
   Quadratic quad;
   double offset = 0.0;
+  DenseIndexer &indexer;
 
 public:
-  BQMInserter() = default;
+  BQMInserter(DenseIndexer &indexer) : indexer(indexer) {}
+  /// Always insert.
+  bool ignore(SpanRef<Variable>, double) const { return false; }
+  /// Implementation.
   void insert_or_add(SpanRef<Variable> term, double coeff) {
     if (coeff == 0.0)
       return;
 
-    switch (term.size()) {
+    auto indexes = indexer.indexes(term);
+    switch (indexes.size()) {
     case 0:
       offset += coeff;
       break;
     case 1: {
-      auto [it, inserted] = linear.emplace(term[0].index(), coeff);
+      auto [it, inserted] = linear.emplace(indexes[0], coeff);
       if (!inserted)
         it->second += coeff;
     } break;
     case 2: {
-      if (term[0] == term[1]) {
-        auto [it, inserted] = linear.emplace(term[0].index(), coeff);
+      if (indexes[0] == indexes[1]) {
+        auto [it, inserted] = linear.emplace(indexes[0], coeff);
         if (!inserted)
           it->second += coeff;
       } else {
-        auto [it, inserted] = quad.emplace(
-            std::make_pair(term[0].index(), term[1].index()), coeff);
+        auto [it, inserted] =
+            quad.emplace(std::make_pair(indexes[0], indexes[1]), coeff);
         if (!inserted)
           it->second += coeff;
       }
@@ -150,32 +208,36 @@ public:
       unreachable_code("invalid dimention product!");
     }
   }
-  bool ignore(SpanRef<Variable>, double) const { return false; }
 };
 /// QUBO generator.
 struct QUBOInserter {
   Quadratic quad;
   double offset = 0.0;
+  DenseIndexer &indexer;
 
 public:
-  QUBOInserter() = default;
+  QUBOInserter(DenseIndexer &indexer) : indexer(indexer) {}
+  /// Always insert.
+  bool ignore(SpanRef<Variable>, double) const { return false; }
+  /// Implementation.
   void insert_or_add(SpanRef<Variable> term, double coeff) {
     if (coeff == 0.0)
       return;
 
-    switch (term.size()) {
+    auto indexes = indexer.indexes(term);
+    switch (indexes.size()) {
     case 0:
       offset += coeff;
       break;
     case 1: {
       auto [it, inserted] =
-          quad.emplace(std::make_pair(term[0].index(), term[0].index()), coeff);
+          quad.emplace(std::make_pair(indexes[0], indexes[0]), coeff);
       if (!inserted)
         it->second += coeff;
     } break;
     case 2: {
       auto [it, inserted] =
-          quad.emplace(std::make_pair(term[0].index(), term[1].index()), coeff);
+          quad.emplace(std::make_pair(indexes[0], indexes[1]), coeff);
       if (!inserted)
         it->second += coeff;
     } break;
@@ -184,7 +246,6 @@ public:
       unreachable_code("invalid dimention product!");
     }
   }
-  bool ignore(SpanRef<Variable>, double) const { return false; }
 };
 
 /// Context manager and interface of CXQUBO entities.User generates variables
@@ -193,11 +254,10 @@ public:
 ///
 /// void compute() {
 ///   auto model = std::make_unique<CXQUBOModel>();
-///   auto x = model->create_binary("x");
-///   auto y = model->create_binary("y");
+///   auto x = model->add_binary("x");
+///   auto y = model->add_binary("y");
 ///   auto w = model->placeholder("w");
-///   auto h = w * (x + y).pow(2);
-///   h = model->constraint(h <= 1.0, "check0");
+///   auto h = constraint(w * (x + y).pow(2) <= 1.0, "check0");
 ///   auto result = model.compile(h);
 ///   auto [qubo, offset] = model.create_qubo(result, {"w": 3.1});
 ///   std::cout << qubo << '\n';
@@ -355,44 +415,82 @@ public:
   }
 
 public:
-  /// Convert a AST to polynomials.
+  /// Compile an expression represented in AST to polynomial form.
   Compiled compile(Express root) {
     return Compiler(ctx).compile(root.ref, fixs);
   }
-  /// Convert a Compiled to cimod's and dimod's BQM parameters.
+  /// Convert a polynomial to cimod's and dimod's BQM parameters. The following
+  /// conversions will be applied.
+  ///
+  /// * Placeholders are replaced to values given in \p feed_dict.
+  /// * Terms with dimentions over 2 are reduced to expression 2 or less and \p
+  ///   strength is multiplied to the reduced expression as reducing strength.
+  /// * Variables' indexes are generally sparse, and they are converted to
+  ///   densed ones when \p to_sparse is not nullptr.
+  std::tuple<Linear, Quadratic, double>
+  create_bqm_params(const Compiled &compiled, std::vector<unsigned> *to_sparse,
+                    const FeedDict &feed_dict = FeedDict{},
+                    double strength = DEFAULT_STRENGTH) {
+    DenseIndexer indexer(to_sparse);
+    BQMInserter inserter(indexer);
+    create_solver_model(compiled, inserter, feed_dict, strength);
+    return std::make_tuple(inserter.linear, inserter.quad, inserter.offset);
+  }
   std::tuple<Linear, Quadratic, double>
   create_bqm_params(const Compiled &compiled,
                     const FeedDict &feed_dict = FeedDict{},
                     double strength = DEFAULT_STRENGTH) {
-    BQMInserter inserter;
-    create_solver_model(compiled, inserter, feed_dict, strength);
-    return std::make_tuple(inserter.linear, inserter.quad, inserter.offset);
+    return create_bqm_params(compiled, nullptr, feed_dict, strength);
   }
-  /// Convert a Compiled to cimod::BinaryQuadraticModel.
+
+  /// Convert a polynomial to cimod::BinaryQuadraticModel.
   BinaryQuadraticModel create_bqm(const Compiled &compiled,
+                                  std::vector<unsigned> *to_sparse,
                                   const FeedDict &feed_dict = FeedDict{},
                                   double strength = DEFAULT_STRENGTH) {
     auto [linear, quad, offset] =
-        create_bqm_params(compiled, feed_dict, strength);
+        create_bqm_params(compiled, to_sparse, feed_dict, strength);
     return BinaryQuadraticModel(linear, quad, offset,
                                 cimod_vartype(Vartype::BINARY));
   }
-  /// Convert a Compiled to QUBO format.
+  BinaryQuadraticModel create_bqm(const Compiled &compiled,
+                                  const FeedDict &feed_dict = FeedDict{},
+                                  double strength = DEFAULT_STRENGTH) {
+    return create_bqm(compiled, nullptr, feed_dict, strength);
+  }
+
+  /// Convert a polynomial to QUBO format. See 'create_bqm_params' comment for
+  /// details.
   std::tuple<Quadratic, double>
-  create_qubo(const Compiled &compiled, const FeedDict &feed_dict = FeedDict{},
+  create_qubo(const Compiled &compiled, std::vector<unsigned> *to_sparse,
+              const FeedDict &feed_dict = FeedDict{},
               double strength = DEFAULT_STRENGTH) {
-    QUBOInserter inserter;
+    DenseIndexer indexer(to_sparse);
+    QUBOInserter inserter(indexer);
     create_solver_model(compiled, inserter, feed_dict, strength);
     return std::make_tuple(inserter.quad, inserter.offset);
   }
-  /// Convert a Compiled to ising format.
+  std::tuple<Quadratic, double>
+  create_qubo(const Compiled &compiled, const FeedDict &feed_dict = FeedDict{},
+              double strength = DEFAULT_STRENGTH) {
+    return create_qubo(compiled, nullptr, feed_dict, strength);
+  }
+
+  /// Convert a polynomial to ising format.
+  std::tuple<Linear, Quadratic, double>
+  create_ising(const Compiled &compiled, std::vector<unsigned> *to_sparse,
+               const FeedDict &feed_dict = FeedDict{},
+               double strength = DEFAULT_STRENGTH) {
+    return create_bqm(compiled, to_sparse, feed_dict, strength).to_ising();
+  }
   std::tuple<Linear, Quadratic, double>
   create_ising(const Compiled &compiled, const FeedDict &feed_dict = FeedDict{},
                double strength = DEFAULT_STRENGTH) {
-    return create_bqm(compiled, feed_dict, strength).to_ising();
+    return create_ising(compiled, nullptr, feed_dict, strength);
   }
-  /// Convert a Compiled to an arbitary solver model. If you want to convert
-  /// Compiled to your own model, prepare \p TermCoeffInserter and pass it as an
+
+  /// Convert a polynomial to an arbitary solver model. If you want to convert
+  /// a polynomial to your own model, prepare \p Inserter and pass it as an
   /// argument.
   template <class Inserter>
   void create_solver_model(const Compiled &compiled, Inserter &inserter,
@@ -410,7 +508,15 @@ public:
       reducer.redce_and_insert(term, coeff);
     }
   }
+
   /// Return readable sampling result.
+  const Report report(const Compiled &compiled, const Sample &dense_sample,
+                      const std::vector<unsigned> &to_sparse,
+                      Vartype vartype = Vartype::BINARY,
+                      const FeedDict &feed_dict = FeedDict{}) {
+    Sample sample = DenseIndexer::make_sparse(dense_sample, to_sparse);
+    return report_impl(compiled, sample, vartype, feed_dict);
+  }
   const Report report(const Compiled &compiled, const Sample &sample,
                       Vartype vartype = Vartype::BINARY,
                       const FeedDict &feed_dict = FeedDict{}) {

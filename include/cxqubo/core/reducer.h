@@ -19,8 +19,6 @@
 #include "cxqubo/core/poly.h"
 
 namespace cxqubo {
-inline constexpr double DEFAULT_STRENGTH = 5.0;
-
 #if 0
 template <class T>
 concept TermCoeffInserter = requires(T x, ConstSpan<Variable> term,
@@ -69,23 +67,7 @@ public:
   /// ->
   ///   zq +  3q + xy - 2yq - 2qx
   std::vector<Variable> redce_and_insert(Product term, double coeff) {
-    /// Constant or dimention of term is small enough.
-    if (ctx.dim_of(term) <= limit) {
-      insert_or_add(term, coeff);
-      return {};
-    }
-
     return redce_and_insert_impl(term, coeff);
-  }
-  /// Insert A * Hc(q, x, y) = A * (3q + xy - 2yq - 2qx)
-  void insert_Hc(Variable q, Variable x, Variable y, double A) {
-    auto xy = ctx.save_product({x, y}, false);
-    auto xq = ctx.save_product({x, q}, false);
-    auto yq = ctx.save_product({y, q}, false);
-    insert_or_add(ctx.save_product({q}, true), 3.0 * A * strength);
-    insert_or_add(xy, A * strength);
-    insert_or_add(xq, -2.0 * A * strength);
-    insert_or_add(yq, -2.0 * A * strength);
   }
 
 private:
@@ -93,6 +75,12 @@ private:
     auto xs = ctx.product_data(term);
     if (inserter.ignore(xs, coeff))
       return {};
+
+    /// Constant or dimention of term is small enough.
+    if (ctx.dim_of(term) <= limit) {
+      insert_or_add(term, coeff);
+      return {};
+    }
 
     auto dim = xs.size();
     // Create q[0:dim-limit].
@@ -115,6 +103,17 @@ private:
     }
 
     return qs;
+  }
+
+  /// Insert A * Hc(q, x, y) = A * (3q + xy - 2yq - 2qx)
+  void insert_Hc(Variable q, Variable x, Variable y, double A) {
+    auto xy = ctx.save_product({x, y}, false);
+    auto xq = ctx.save_product({x, q}, false);
+    auto yq = ctx.save_product({y, q}, false);
+    insert_or_add(ctx.save_product({q}, true), 3.0 * A * strength);
+    insert_or_add(xy, A * strength);
+    insert_or_add(xq, -2.0 * A * strength);
+    insert_or_add(yq, -2.0 * A * strength);
   }
 
   void insert_or_add(Product term, double coeff) {
