@@ -16,7 +16,6 @@
 #define CXQUBO_CORE_VARIABLES_H
 
 #include "cxqubo/core/vartypes.h"
-#include "cxqubo/misc/drawable.h"
 #include <string_view>
 
 namespace cxqubo {
@@ -25,8 +24,8 @@ struct VariableData {
   std::string_view name;
   Vartype type;
 
-  std::ostream &draw(std::ostream &os) const {
-    return os << type << "(" << name << ")";
+  friend std::ostream &operator<<(std::ostream &os, const VariableData &v) {
+    return os << v.type << "(" << v.name << ")";
   }
 
   bool equals(const VariableData &rhs) const {

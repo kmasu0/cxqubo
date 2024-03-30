@@ -50,7 +50,6 @@ public:
   std::string_view name() const { return ctx->expr_name(ref); }
 
 public:
-  std::ostream &draw(std::ostream &os) const { return ctx->draw_expr(os, ref); }
   std::ostream &draw_as_tree(std::ostream &os) const {
     return ctx->draw_tree(os, ref);
   }
@@ -151,7 +150,11 @@ public:
   }
 };
 
-inline std::ostream &draw(std::ostream &os, const Express::Cmp &cmp) {
+inline std::ostream &operator<<(std::ostream &os, const Express &e) {
+  return e.ctx->draw_expr(os, e.ref);
+}
+
+inline std::ostream &operator<<(std::ostream &os, const Express::Cmp &cmp) {
   const auto &[expr, op, value] = cmp;
   return os << '(' << expr << ' ' << op << ' ' << value << ')';
 }
@@ -256,9 +259,9 @@ public:
     return seed;
   }
 
-  std::ostream &draw(std::ostream &os) const {
+  friend std::ostream &operator<<(std::ostream &os, const Array &arr) {
     os << "Array(";
-    draw_impl(os, 0, ndim(), 6, true);
+    arr.draw_impl(os, 0, arr.ndim(), 6, true);
     return os << ")\n";
   }
 

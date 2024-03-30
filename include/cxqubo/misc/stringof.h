@@ -1,7 +1,6 @@
 #ifndef CXQUBO_MISC_STRINGOF_H
 #define CXQUBO_MISC_STRINGOF_H
 
-#include "cxqubo/misc/drawable.h"
 #include <sstream>
 #include <string>
 

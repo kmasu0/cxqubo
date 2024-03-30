@@ -36,14 +36,9 @@ public:
 
   size_t hash() const { return hash_range(begin(), end()); }
 
-  std::ostream &draw(std::ostream &os) const {
+  friend std::ostream &operator<<(std::ostream &os, const ProductData &v) {
     os << '(';
-    unsigned cnt = 0;
-    for (auto var : *this) {
-      if (cnt++ != 0)
-        os << ", ";
-      os << var;
-    }
+    draw_range(os, v);
     return os << ')';
   }
 

@@ -169,8 +169,8 @@ public:
     return tmp;
   }
 
-  std::ostream &draw(std::ostream &os) const {
-    return os << "ShapedIter(" << index << ")";
+  friend std::ostream &operator<<(std::ostream &os, const ShapedIter &v) {
+    return os << "ShapedIter(" << v.index << ")";
   }
 };
 

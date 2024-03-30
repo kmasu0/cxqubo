@@ -18,7 +18,6 @@
 #include "cxqubo/core/entity.h"
 #include "cxqubo/misc/compare.h"
 #include "cxqubo/misc/debug.h"
-#include "cxqubo/misc/drawable.h"
 #include "cxqubo/misc/error_handling.h"
 #include "cxqubo/misc/list.h"
 #include "cxqubo/misc/variant.h"
@@ -28,8 +27,8 @@ namespace cxqubo {
 struct Fp {
   double value = 0.0;
 
-  std::ostream &draw(std::ostream &os) const {
-    return os << std::to_string(value);
+  friend std::ostream &operator<<(std::ostream &os, Fp v) {
+    return os << std::to_string(v.value);
   }
   int compare(Fp rhs) const { return compare_values(value, rhs.value); }
 };
@@ -37,8 +36,8 @@ struct Fp {
 /// Placeholder value.
 struct Placeholder {
   std::string_view name;
-  std::ostream &draw(std::ostream &os) const {
-    return os << "place('" << name << "')";
+  friend std::ostream &operator<<(std::ostream &os, Placeholder v) {
+    return os << "place('" << v.name << "')";
   }
   int compare(const Placeholder &rhs) const {
     return compare_values(name, rhs.name);
@@ -50,9 +49,9 @@ struct SubH {
   std::string_view label;
   Expr expr;
 
-  std::ostream &draw(std::ostream &os) const {
+  friend std::ostream &operator<<(std::ostream &os, const SubH &v) {
     return os << "subh"
-              << "('" << label << "', " << expr << ")";
+              << "('" << v.label << "', " << v.expr << ")";
   }
   int compare(const SubH &rhs) const {
     return compare_tuple(std::make_tuple(label, expr),
@@ -66,9 +65,9 @@ struct Constraint {
   Expr expr;
   Condition cond;
 
-  std::ostream &draw(std::ostream &os) const {
+  friend std::ostream &operator<<(std::ostream &os, const Constraint &v) {
     return os << "constr"
-              << "('" << label << "', " << expr << ")";
+              << "('" << v.label << "', " << v.expr << ")";
   }
   int compare(const Constraint &rhs) const {
     return compare_tuple(std::make_tuple(label, expr, cond),
@@ -87,7 +86,7 @@ enum class Op : uint8_t {
   Mul, // '*'
 };
 
-inline std::ostream &draw(std::ostream &os, Op op) {
+inline std::ostream &operator<<(std::ostream &os, Op op) {
   switch (op) {
   case Op::INVALID:
     return os << "<invalid>";
@@ -107,8 +106,8 @@ struct Unary {
   Op op = Op::INVALID;
   Expr operand;
 
-  std::ostream &draw(std::ostream &os) const {
-    return os << "(" << op << operand << ')';
+  friend std::ostream &operator<<(std::ostream &os, const Unary &v) {
+    return os << "(" << v.op << v.operand << ')';
   }
   bool equals(const Unary &rhs) const {
     return op == rhs.op && operand == rhs.operand;
@@ -123,12 +122,12 @@ struct List {
   Op op = Op::INVALID;
   Node *node = nullptr;
 
-  std::ostream &draw(std::ostream &os) const {
-    os << '(' << node->value;
+  friend std::ostream &operator<<(std::ostream &os, const List &v) {
+    os << '(' << v.node->value;
 
-    auto *n = node->next;
+    auto *n = v.node->next;
     while (n) {
-      os << ' ' << op << ' ' << n->value;
+      os << ' ' << v.op << ' ' << n->value;
       n = n->next;
     }
     return os << ')';
@@ -171,8 +170,8 @@ struct ExprData : public ExprVariant {
     std::ostream &operator()(const List &v) { return os << v; }
     std::ostream &operator()(std::monostate) { return os << "<invalid>"; }
   };
-  std::ostream &draw(std::ostream &os) const {
-    return std::visit(Drawer{os}, *this);
+  friend std::ostream &operator<<(std::ostream &os, const ExprData &v) {
+    return std::visit(Drawer{os}, v);
   }
 };
 } // namespace cxqubo
