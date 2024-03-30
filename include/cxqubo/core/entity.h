@@ -63,9 +63,9 @@ public:
 
   size_t hash() const { return hash_value(id); }
 
-  std::ostream &draw(std::ostream &os) const {
-    if (valid())
-      return os << PREFIX << index();
+  friend std::ostream &operator<<(std::ostream &os, Entity v) {
+    if (v)
+      return os << PREFIX << v.index();
     else
       return os << PREFIX << "(invalid)";
   }

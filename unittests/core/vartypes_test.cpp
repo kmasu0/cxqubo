@@ -46,15 +46,15 @@ TEST(vartypes_test, basics) {
 TEST(vartypes_test, draw) {
   std::stringstream ss;
 
-  draw(ss, Vartype::NONE);
+  ss << Vartype::NONE;
   EXPECT_EQ("None", ss.str());
   ss.str("");
 
-  draw(ss, Vartype::SPIN);
+  ss << Vartype::SPIN;
   EXPECT_EQ("Spin", ss.str());
   ss.str("");
 
-  draw(ss, Vartype::BINARY);
+  ss << Vartype::BINARY;
   EXPECT_EQ("Binary", ss.str());
   ss.str("");
 }

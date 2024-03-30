@@ -16,7 +16,6 @@
 #define CXQUBO_CORE_CONDITINOS_H
 
 #include "cxqubo/core/entity.h"
-#include "cxqubo/misc/drawable.h"
 #include "cxqubo/misc/hasher.h"
 #include "cxqubo/misc/vecmap.h"
 #include <vector>
@@ -69,8 +68,8 @@ public:
     }
   }
 
-  std::ostream &draw(std::ostream &os) const {
-    switch (kind) {
+  friend std::ostream &operator<<(std::ostream &os, CmpOp op) {
+    switch (op.kind) {
     default:
       return os << "<invalid>";
     case EQ:

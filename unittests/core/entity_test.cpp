@@ -25,11 +25,11 @@ TEST(entity_test, basics) {
 
 TEST(entity_test, draw) {
   std::stringstream ss;
-  V::from(10).draw(ss);
+  ss << V::from(10);
   EXPECT_EQ(ss.str(), "v10");
 
   ss.str("");
-  V::none().draw(ss);
+  ss << V::none();
   EXPECT_EQ(ss.str(), "v(invalid)");
 }
 } // namespace

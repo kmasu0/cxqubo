@@ -95,13 +95,11 @@ public:
 
   ConstPolyIter end() const { return ConstPolyIter(); }
 
-  std::ostream &draw(std::ostream &os) const {
-    if (const auto *p = as_ptr_if<Single>()) {
+  friend std::ostream &operator<<(std::ostream &os, const Poly &v) {
+    if (const auto *p = v.as_ptr_if<Single>())
       return os << '{' << p->first << ", " << p->second << '}';
-    }
-    if (const auto *p = as_ptr_if<Multi>()) {
+    if (const auto *p = v.as_ptr_if<Multi>())
       return os << *p;
-    }
     return os << "<none>";
   }
 

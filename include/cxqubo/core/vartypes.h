@@ -63,7 +63,7 @@ inline int32_t convert_spin_value(int32_t v, Vartype from, Vartype to) {
 }
 
 /// Drawer.
-inline std::ostream &draw(std::ostream &os, Vartype type) {
+inline std::ostream &operator<<(std::ostream &os, Vartype type) {
   switch (type) {
   default:
     unreachable_code("invalid variable kind");

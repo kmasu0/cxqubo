@@ -39,27 +39,27 @@ TEST(conditions_test, cmpop_basics) {
 
 TEST(conditions_test, cmpop_draw) {
   std::stringstream ss;
-  CmpOp::eq().draw(ss);
+  ss << CmpOp::eq();
   EXPECT_EQ("==", ss.str());
 
   ss.str("");
-  CmpOp::ne().draw(ss);
+  ss << CmpOp::ne();
   EXPECT_EQ("!=", ss.str());
 
   ss.str("");
-  CmpOp::gt().draw(ss);
+  ss << CmpOp::gt();
   EXPECT_EQ(">", ss.str());
 
   ss.str("");
-  CmpOp::ge().draw(ss);
+  ss << CmpOp::ge();
   EXPECT_EQ(">=", ss.str());
 
   ss.str("");
-  CmpOp::lt().draw(ss);
+  ss << CmpOp::lt();
   EXPECT_EQ("<", ss.str());
 
   ss.str("");
-  CmpOp::le().draw(ss);
+  ss << CmpOp::le();
   EXPECT_EQ("<=", ss.str());
 }
 } // namespace

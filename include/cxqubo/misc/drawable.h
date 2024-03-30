@@ -10,46 +10,7 @@
 #include <utility>
 
 namespace cxqubo {
-template <class T, class Enable = void>
-struct HasDrawMethod : public std::false_type {};
-
-template <class T>
-struct HasDrawMethod<
-    T, typename std::enable_if_t<
-           std::is_same_v<std::ostream &, decltype(std::declval<T>().draw(
-                                              std::declval<std::ostream &>()))>,
-           void>> : public std::true_type {};
-
-template <class T> constexpr bool has_draw_method = HasDrawMethod<T>::value;
-
-template <class T, class Enable = void>
-struct HasDrawFunction : public std::false_type {};
-
-template <class T>
-struct HasDrawFunction<
-    T, typename std::enable_if_t<
-           std::is_same_v<std::ostream &,
-                          decltype(draw(std::declval<std::ostream &>(),
-                                        std::declval<T>()))>,
-           void>> : public std::true_type {};
-
-template <class T> constexpr bool has_draw_function = HasDrawFunction<T>::value;
-
-template <class T>
-constexpr bool is_drawable = has_draw_method<std::remove_cv_t<T>> ||
-                             has_draw_function<std::remove_cv_t<T>>;
-
-template <class T>
-inline std::enable_if_t<is_drawable<T>, std::ostream &>
-operator<<(std::ostream &os, const T &v) {
-  if constexpr (has_draw_method<T>)
-    v.draw(os);
-  else
-    draw(os, v);
-
-  return os;
-}
-
+//--- Helper functions ---------------------------------------------------------
 template <class It>
 inline std::ostream &draw_range(std::ostream &os, It begin, It end) {
   unsigned cnt = 0;
