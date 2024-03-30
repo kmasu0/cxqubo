@@ -31,6 +31,8 @@ int main() {
 }
 ```
 
+See [[tsp.cpp]](./examples/tsp.cpp) for details.
+
 ## Build and install
 
 ```sh
@@ -41,10 +43,6 @@ cd cxqubo
 ```
 
 If you want to change install destination, change configure.sh.
-
-## Bindings
-
-* Python binding: [pycxqubo](https://github.com/kmasu0/pycxqubo)
 
 ## Dependency
 
