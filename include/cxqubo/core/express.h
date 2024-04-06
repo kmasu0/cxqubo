@@ -208,8 +208,17 @@ public:
   }
   size_t nelements() const { return ndim() == 0 ? 1 : shape_.nelements(); }
 
-  friend bool operator==(const Array &lhs, const Array &rhs) {
-    return equals(lhs, rhs);
+  bool equals(const Array &rhs) const {
+    if (ctx != rhs.ctx || base_ != rhs.base_)
+      return false;
+
+    if (shape_.size() != rhs.shape_.size())
+      return false;
+
+    if (ndim() == 0)
+      return true;
+
+    return shape_ == rhs.shape_;
   }
 
   Express base() const { return Express(ctx, base_); }
@@ -390,19 +399,6 @@ private:
       remain(i).draw_impl(os, depth + 1, whole_dim, indent, i == 0);
     }
     os << ']';
-  }
-
-  friend bool equals(const Array &lhs, const Array &rhs) {
-    if (lhs.ctx != rhs.ctx || lhs.base_ != rhs.base_)
-      return false;
-
-    if (lhs.shape_.size() != rhs.shape_.size())
-      return false;
-
-    if (lhs.ndim() == 0)
-      return true;
-
-    return lhs.shape_ == rhs.shape_;
   }
 };
 
