@@ -15,7 +15,7 @@ inline constexpr TypeIndex type_index_of =
     std::is_same_v<T, T0> ? I : type_index_of<I + 1, T, Ts...>;
 
 template <TypeIndex I, class T, class T0>
-inline constexpr size_t type_index_of<I, T, T0> =
+inline constexpr TypeIndex type_index_of<I, T, T0> =
     std::is_same_v<T, T0> ? I : type_index_npos;
 
 template <size_t N, class T, class... Ts> struct indexed_type_of {
