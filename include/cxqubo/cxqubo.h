@@ -316,7 +316,7 @@ public:
     DecodedLinear result;
     for (auto [id, coeff] : linear) {
       auto name = decode_or_create_name(id);
-      assert(!result.contains(name) &&
+      assert(result.count(name) == 0 &&
              "Different product for same variables is generated!");
       result.emplace(name, coeff);
     }
@@ -329,7 +329,7 @@ public:
       auto v0 = decode_or_create_name(term.first);
       auto v1 = decode_or_create_name(term.second);
       auto v0v1 = std::make_pair(v0, v1);
-      assert(!result.contains(v0v1) &&
+      assert(result.count(v0v1) == 0 &&
              "Different product for same variables is generated!");
       result.emplace(v0v1, coeff);
     }
