@@ -537,7 +537,7 @@ private:
     void constraint(Expr expr, double energy) override {
       auto data = ctx.expr_data(expr);
       auto constr = data.as<Constraint>();
-      bool is_broken = ctx.apply_cond(constr.cond, energy);
+      bool is_broken = !ctx.apply_cond(constr.cond, energy);
       r.constraint_energies.emplace(constr.label,
                                     std::make_pair(is_broken, energy));
     }
