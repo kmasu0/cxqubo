@@ -108,8 +108,14 @@ public:
 
 /// Expressions represented in term and coefficient pairs.
 struct Compiled {
-  Poly poly;
   Expr expr;
+  Poly poly;
+
+  friend std::ostream &operator<<(std::ostream &os, const Compiled &v) {
+    os << "expr: " << v.expr << '\n';
+    os << "poly: " << v.poly;
+    return os;
+  }
 };
 
 class Compiler {
@@ -120,7 +126,7 @@ public:
 
   Compiled compile(Expr root, const Sample &fixs = {}) {
     Parser parser(ctx, fixs);
-    return Compiled{parser.parse(root), root};
+    return Compiled{root, parser.parse(root)};
   }
 };
 
