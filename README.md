@@ -31,7 +31,7 @@ int main() {
 }
 ```
 
-See [[tsp.cpp]](./examples/tsp.cpp) for details.
+See [tsp.cpp](./examples/tsp.cpp) for details.
 
 ## Build and install
 
