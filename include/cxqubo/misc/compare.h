@@ -5,6 +5,7 @@
 #include <iterator>
 
 namespace cxqubo {
+//-- Helper functions ----------------------------------------------------------
 template <class L, class R> inline int compare_values(L &&lhs, R &&rhs) {
   return lhs > rhs ? 1 : lhs == rhs ? 0 : -1;
 }
@@ -50,6 +51,7 @@ template <class C> inline int compare_range(const C &lhs, const C &rhs) {
                        std::end(rhs));
 }
 
+//-- Operators -----------------------------------------------------------------
 template <class T, class Enabler = void>
 struct HasCompare : public std::false_type {};
 
