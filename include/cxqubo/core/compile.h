@@ -176,27 +176,43 @@ struct SubEnergyObserverBase {
   virtual void subh(Expr expr, double energy) {}
   virtual void constraint(Expr expr, double energy) {}
 };
-using VariableEnergy = std::function<double(Variable)>;
 /// Compute energies.
 struct ExprEnergy {
   Context &ctx;
   const FeedDict &feed_dict;
-  VariableEnergy varenergy;
   std::vector<SubEnergyObserverBase *> observers;
 
+  Vartype sample_type = Vartype::NONE;
+  const Sample *sample = nullptr;
+  const Sample *fixed = nullptr;
+
 public:
-  ExprEnergy(Context &ctx, const FeedDict &feed_dict,
-             const VariableEnergy &varenergy)
-      : ctx(ctx), feed_dict(feed_dict), varenergy(varenergy) {}
+  ExprEnergy(Context &ctx, const FeedDict &feed_dict)
+      : ctx(ctx), feed_dict(feed_dict) {}
 
   void add_observer(SubEnergyObserverBase &observer) {
     observers.push_back(&observer);
   }
 
-  double compute(Expr root) { return visit<double>(root, ctx, *this); }
+  double compute(Expr root, const Sample &sample, Vartype type,
+                 const Sample &fixed = {}) {
+    this->sample_type = type;
+    this->sample = &sample;
+    this->fixed = &fixed;
+    return visit_expr(root);
+  }
 
   double operator()(Fp data, Expr target) { return data.value; }
-  double operator()(Variable data, Expr target) { return varenergy(data); }
+  double operator()(Variable data, Expr target) {
+    Vartype org_type = ctx.var_data(data).type;
+    auto it = sample->find(data.index());
+    if (it != sample->end()) {
+      return convert_spin_value(it->second, sample_type, org_type);
+    }
+
+    it = fixed->find(data.index());
+    return it != fixed->end() ? it->second : 0.0;
+  }
   double operator()(Placeholder data, Expr target) {
     auto it = feed_dict.find(data.name);
     assert(it != feed_dict.end() &&
@@ -204,31 +220,36 @@ public:
     return it->second;
   }
   double operator()(SubH data, Expr target) {
-    double result = compute(data.expr);
+    double result = visit_expr(data.expr);
     for (auto *observer : observers)
       observer->subh(target, result);
     return result;
   }
   double operator()(Constraint data, Expr target) {
-    double result = compute(data.expr);
+    double result = visit_expr(data.expr);
     for (auto *observer : observers)
       observer->constraint(target, result);
     return result;
   }
-  double operator()(Unary data, Expr target) { return -compute(data.operand); }
+  double operator()(Unary data, Expr target) {
+    return -visit_expr(data.operand);
+  }
   double operator()(List data, Expr target) {
     auto it = data.begin();
-    double result = compute(*it++);
+    double result = visit_expr(*it++);
     for (auto end = data.end(); it != end; ++it) {
       if (data.op == Op::Add)
-        result += compute(*it);
+        result += visit_expr(*it);
       else if (data.op == Op::Mul)
-        result *= compute(*it);
+        result *= visit_expr(*it);
       else
         unreachable_code("unsupported operation");
     }
     return result;
   }
+
+private:
+  double visit_expr(Expr root) { return visit<double>(root, ctx, *this); }
 };
 } // namespace cxqubo
 

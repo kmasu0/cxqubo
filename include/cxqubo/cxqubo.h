@@ -272,7 +272,7 @@ private:
   /// Array data.
   std::vector<SpanOwner<unsigned>> array_shapes;
   /// Fixed variables' values.
-  Sample fixs;
+  Sample fixed;
 
 public:
   CXQUBOModel(Context &ctx) : ctx(ctx) {}
@@ -394,7 +394,7 @@ public:
     Variable var = ctx.expr_var(expr.ref);
     assert(var && "lhs in 'fix' method must be a variable!");
     Vartype from = ctx.var_data(var).type;
-    fixs.emplace(var.index(), convert_spin_value(v, from, Vartype::BINARY));
+    fixed.emplace(var.index(), convert_spin_value(v, from, Vartype::BINARY));
   }
   /// Fix variables to the given spin value.
   void fix_all(SpanRef<Express> vars, int32_t v) {
@@ -417,7 +417,7 @@ public:
 public:
   /// Compile an expression represented in AST to polynomial form.
   Compiled compile(Express root) {
-    return Compiler(ctx).compile(root.ref, fixs);
+    return Compiler(ctx).compile(root.ref, fixed);
   }
   /// Convert a polynomial to cimod's and dimod's BQM parameters. The following
   /// conversions will be applied.
@@ -548,23 +548,12 @@ private:
     r.context = &ctx;
     r.vartype = vartype;
     r.sample = decode(ctx.convert_sample(sample, vartype));
-    r.fixed = decode(ctx.convert_sample(fixs, Vartype::BINARY));
+    r.fixed = decode(ctx.convert_sample(fixed, Vartype::BINARY));
 
-    ExprEnergy ee(ctx, feed_dict,
-                  [this, &sample, vartype](Variable var) -> double {
-                    Vartype to = ctx.var_data(var).type;
-                    auto it = sample.find(var.index());
-                    if (it != sample.end()) {
-                      return convert_spin_value(it->second, vartype, to);
-                    }
-                    it = fixs.find(var.index());
-                    assert(it != fixs.end() &&
-                           "unknown variable is found in sampling result!");
-                    return it->second;
-                  });
+    ExprEnergy ee(ctx, feed_dict);
     SubEnergyReporter reporter(r, ctx);
     ee.add_observer(reporter);
-    r.energy = ee.compute(compiled.expr);
+    r.energy = ee.compute(compiled.expr, sample, vartype, fixed);
 
     return r;
   }
