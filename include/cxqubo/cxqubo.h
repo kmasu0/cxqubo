@@ -266,7 +266,6 @@ public:
 ///   // distructed.
 /// }
 class CXQUBOModel {
-private:
   /// Storage of entities.
   Context &ctx;
   /// Array data.
@@ -284,7 +283,13 @@ public:
   }
 
 public:
-  Context &context() { return ctx; }
+  const Context &context() const { return ctx; }
+
+  std::pair<Express, Vartype> get_var(std::string_view name) const {
+    Variable var = ctx.var_of(name);
+    Vartype type = ctx.var_data(var).type;
+    return {Express(&ctx, ctx.variable(var)), type};
+  }
 
   /// Return a variable name if it exists. Otherwise create a variable name and
   /// return it.
@@ -515,12 +520,12 @@ public:
                       Vartype vartype = Vartype::BINARY,
                       const FeedDict &feed_dict = FeedDict{}) {
     Sample sample = DenseIndexer::make_sparse(dense_sample, to_sparse);
-    return report_impl(compiled, sample, vartype, feed_dict);
+    return make_report(compiled, sample, vartype, feed_dict);
   }
   const Report report(const Compiled &compiled, const Sample &sample,
                       Vartype vartype = Vartype::BINARY,
                       const FeedDict &feed_dict = FeedDict{}) {
-    return report_impl(compiled, sample, vartype, feed_dict);
+    return make_report(compiled, sample, vartype, feed_dict);
   }
 
 private:
@@ -542,7 +547,7 @@ private:
                                     std::make_pair(is_broken, energy));
     }
   };
-  const Report report_impl(const Compiled &compiled, const Sample &sample,
+  const Report make_report(const Compiled &compiled, const Sample &sample,
                            Vartype vartype, const FeedDict &feed_dict) {
     Report r;
     r.context = &ctx;
